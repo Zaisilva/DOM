@@ -1,33 +1,33 @@
 import React from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
     try {
-      const response = await api.post('/auth/login', { 
-        email: values.username, 
-        password: values.password 
-      });
-      
-      localStorage.setItem('token', response.data.token);
-      message.success(`¡Bienvenido ${response.data.user.username}!`);
-      navigate('/dashboard');
+      await api.post('/auth/register', values);
+      message.success('¡Usuario registrado exitosamente!');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
+           message.error('Error en el registro. Por favor, intenta de nuevo');
+
+        
       if (error.response?.data?.error) {
         message.error(error.response.data.error);
-      } else if (error.response?.status === 401) {
-        message.error('Email o contraseña incorrectos');
+      } else if (error.response?.status === 400) {
+        message.error('El usuario ya existe');
       } else {
-        message.error('Error al iniciar sesión. Por favor, intenta de nuevo');
+        message.error('Error en el registro. Por favor, intenta de nuevo');
       }
     }
   };
-
+  
   return (
     <div style={{
       height: '100vh',
@@ -50,17 +50,35 @@ const LoginPage = () => {
           color: '#b388ff'
         }}>Task Manager</h2>
         <Form
-          name="login"
+          name="register"
           onFinish={onFinish}
           layout="vertical"
         >
           <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: 'Por favor ingresa tu email' },
+              { type: 'email', message: 'Ingresa un email válido' }
+            ]}
+          >
+            <Input 
+              prefix={<MailOutlined style={{ color: '#b388ff' }} />} 
+              placeholder="Email"
+              style={{ 
+                background: '#141414',
+                borderColor: '#303030',
+                color: '#fff'
+              }}
+              className="custom-input"
+            />
+          </Form.Item>
+          <Form.Item
             name="username"
-            rules={[{ required: true, message: 'Por favor ingresa tu email' }]}
+            rules={[{ required: true, message: 'Por favor ingresa tu usuario' }]}
           >
             <Input 
               prefix={<UserOutlined style={{ color: '#b388ff' }} />} 
-              placeholder="Email"
+              placeholder="Usuario"
               style={{ 
                 background: '#141414',
                 borderColor: '#303030',
@@ -94,15 +112,15 @@ const LoginPage = () => {
                 borderColor: '#b388ff'
               }}
             >
-              Iniciar Sesión
+              Registrarse
             </Button>
           </Form.Item>
           <div style={{ textAlign: 'center' }}>
             <a 
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/login')}
               style={{ color: '#b388ff', cursor: 'pointer' }}
             >
-              ¿No tienes cuenta? Regístrate
+              ¿Ya tienes cuenta? Inicia sesión
             </a>
           </div>
         </Form>
@@ -127,4 +145,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
