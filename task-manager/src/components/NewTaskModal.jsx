@@ -1,21 +1,50 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, DatePicker, Select, message } from 'antd';
 import api from '../services/api';
 
 const { TextArea } = Input;
 
-const NewTaskModal = ({ visible, onClose, onTaskCreated }) => {
+const NewTaskModal = ({ visible, onClose, onTaskCreated, groupId, groupMembers }) => {
   const [form] = Form.useForm();
+  const [members, setMembers] = useState([]);
+
+  // Cargar los miembros del grupo si no se proporcionan
+  useEffect(() => {
+    const fetchGroupMembers = async () => {
+      if (!groupMembers && groupId) {
+        try {
+          const response = await api.get(`/groups/${groupId}/members`);
+          setMembers(response.data);
+        } catch (error) {
+          message.error('Error al cargar los miembros del grupo');
+          console.error(error);
+        }
+      } else if (groupMembers) {
+        setMembers(groupMembers);
+      }
+    };
+
+    fetchGroupMembers();
+  }, [groupId, groupMembers]);
 
   const onFinish = async (values) => {
     try {
-        await api.post('/tasks/create', values);
-        message.success('Tarea creada exitosamente');
+      // Agregar el ID del grupo a los valores del formulario
+      const taskData = {
+        ...values,
+        groupId: groupId,
+        // Convertir la fecha a formato compatible con Firestore si existe
+        deadline: values.deadline ? values.deadline.toDate() : null
+      };
+
+      await api.post('/tasks/create', taskData);
+      message.success('Tarea creada exitosamente');
       form.resetFields();
       onTaskCreated();
       onClose();
     } catch (error) {
       message.error('Error al crear la tarea');
+      console.error(error);
     }
   };
 
@@ -73,8 +102,26 @@ const NewTaskModal = ({ visible, onClose, onTaskCreated }) => {
         >
           <Input className="custom-input" />
         </Form.Item>
+        <Form.Item
+          name="assignedUserId"
+          label="Asignar a"
+          rules={[{ required: true, message: 'Por favor asigna un responsable' }]}
+        >
+          <Select 
+            className="custom-input"
+            placeholder="Seleccionar miembro"
+            loading={members.length === 0}
+          >
+            {members.map(member => (
+              <Select.Option key={member.id || member.userId} value={member.id || member.userId}>
+                {member.name || member.displayName || member.email}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
       </Form>
     </Modal>
   );
 };
+
 export default NewTaskModal;

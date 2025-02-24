@@ -13,10 +13,21 @@ const LoginPage = () => {
         email: values.username, 
         password: values.password 
       });
+
       
+      // Guardar el token
       localStorage.setItem('token', response.data.token);
+      
+      // Guardar información del usuario incluyendo el tipo
+      localStorage.setItem('userData', JSON.stringify({
+        username: response.data.user.username,
+        userType: response.data.user.tipo,
+        // Otros datos relevantes del usuario...
+      }));
+      
       message.success(`¡Bienvenido ${response.data.user.username}!`);
-      navigate('/dashboard');
+
+      navigate('/groups');
     } catch (error) {
       if (error.response?.data?.error) {
         message.error(error.response.data.error);
