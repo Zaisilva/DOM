@@ -9,7 +9,7 @@ import {
   UserOutlined 
 } from '@ant-design/icons';
 import NewTeamModal from '../../components/NewTeamModal';
-import api from '../../services/api';
+import { fetchTeams, deleteTeam } from '../../services/teamService';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -19,44 +19,24 @@ const TeamPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentTeam, setCurrentTeam] = useState(null);
 
-  const fetchTeams = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/teams/list');
-      setTeams(response.data);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchTeams();
+    fetchTeams(setTeams, setLoading);
   }, []);
 
-  const handleMenuClick = async (team, action) => {
-    if (action === 'edit') {
-      setCurrentTeam(team);
-      setNewTeamModalVisible(true);
-    } else if (action === 'delete') {
-      Modal.confirm({
-        title: '¿Estás seguro que deseas eliminar este equipo?',
-        content: 'Esta acción no se puede deshacer',
-        okText: 'Eliminar',
-        okType: 'danger',
-        cancelText: 'Cancelar',
-        onOk: async () => {
-          try {
-            await api.delete(`/teams/${team.id}`);
-            fetchTeams();
-          } catch (error) {
-            console.error('Error deleting team:', error);
-          }
-        }
-      });
-    }
-  };
+
+
+const handleMenuClick = (team, action) => {
+  if (action === 'delete') {
+    Modal.confirm({
+      title: '¿Estás seguro que deseas eliminar este equipo?',
+      content: 'Esta acción no se puede deshacer',
+      okText: 'Eliminar',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: () => deleteTeam(team.id, () => fetchTeams(setTeams, setLoading)),
+    });
+  }
+};
 
   const renderTeamCard = (team) => {
     const teamMenu = (
@@ -301,9 +281,10 @@ const TeamPage = () => {
         onClose={() => setNewTeamModalVisible(false)}
         team={currentTeam}
         onTeamCreated={() => {
-          fetchTeams();
+          fetchTeams(setTeams, setLoading);
           setNewTeamModalVisible(false);
         }}
+        
       />
     </div>
   );

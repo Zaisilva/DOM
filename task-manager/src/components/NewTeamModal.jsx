@@ -29,6 +29,7 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
       fetchCurrentUser();
     }
   }, [visible]);
+  
   useEffect(() => {
     if (team && visible) {
       form.setFieldsValue({
@@ -41,6 +42,7 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
       setSelectedUsers(currentUser ? [currentUser] : []);
     }
   }, [team, visible, form, currentUser]);
+  
   const searchUsers = debounce(async (value) => {
     if (!value || value.length < 2) {
       setSearchResults([]);
@@ -61,17 +63,20 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
       setSearching(false);
     }
   }, 500);
+  
   const handleSearchChange = (value) => {
     setSearchTerm(value);
     searchUsers(value);
   };
+  
   const handleSelectUser = (user) => {
     if (!selectedUsers.some(selected => selected.id === user.id)) {
       setSelectedUsers([...selectedUsers, user]);
     }
-    setSearchTerm('');
+    setSearchTerm(''); // Limpia el campo de búsqueda
     setSearchResults([]);
   };
+  
   const handleRemoveUser = (userId) => {
     if (currentUser && currentUser.id === userId && !team) {
       message.warning('No puedes eliminarte a ti mismo del equipo');
@@ -79,6 +84,7 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
     }
     setSelectedUsers(selectedUsers.filter(user => user.id !== userId));
   };
+  
   const handleSubmit = async (values) => {
     if (selectedUsers.length === 0) {
       message.error('Debes seleccionar al menos un miembro para el equipo');
@@ -103,6 +109,7 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
       message.error('Error al guardar el equipo');
     }
   };
+  
   return (
     <Modal
       title={team ? "Editar Equipo" : "Nuevo Equipo"}
@@ -138,10 +145,11 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
             style={{ borderRadius: '8px' }}
           />
         </Form.Item>
+        
         <Divider orientation="left">Miembros del Equipo</Divider>
-                <Alert
-          message="Busca y selecciona usuarios para añadirlos a tu equipo"
-          description="Los usuarios que ya forman parte del equipo no aparecerán en los resultados de búsqueda."
+                
+        <Alert
+          message="Los usuarios que ya forman parte del equipo no aparecerán en los resultados de búsqueda."
           type="info"
           showIcon
           icon={<InfoCircleOutlined />}
@@ -156,14 +164,19 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
         <div style={{ marginBottom: '16px' }}>
           <Select
             showSearch
-            value={searchTerm}
-            placeholder="Buscar usuarios por nombre, correo o username"
+            value={null} // Cambiado aquí: siempre mostrará el placeholder
+            placeholder="Buscar usuarios"
             style={{ width: '100%', borderRadius: '8px' }}
             defaultActiveFirstOption={false}
             showArrow={false}
             filterOption={false}
             onSearch={handleSearchChange}
-            onChange={handleSearchChange}
+            onChange={(value, option) => {
+              // Si es un objeto de usuario completo, lo seleccionamos
+              if (option && option.data) {
+                handleSelectUser(option.data);
+              }
+            }}
             notFoundContent={searching ? <Spin size="small" /> : "No se encontraron usuarios"}
             suffixIcon={<SearchOutlined />}
             dropdownStyle={{ borderRadius: '8px' }}
@@ -179,10 +192,9 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
             )}
           >
             {searchResults.map(user => (
-              <Option key={user.id} value={user.name} label={user.name}>
+              <Option key={user.id} value={user.id} label={user.name} data={user}>
                 <div 
                   style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}
-                  onClick={() => handleSelectUser(user)}
                 >
                   <Avatar size="small" icon={<UserOutlined />} src={user.avatar} />
                   <div style={{ marginLeft: '8px', flex: 1 }}>
@@ -245,6 +257,7 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
             )}
           </div>
         </div>
+        
         <div style={{ textAlign: 'right' }}>
           <Button 
             style={{ marginRight: 8, borderRadius: '8px' }} 
@@ -269,4 +282,5 @@ const NewTeamModal = ({ visible, onClose, team, onTeamCreated }) => {
     </Modal>
   );
 };
+
 export default NewTeamModal;

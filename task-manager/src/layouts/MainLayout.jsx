@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Layout, Menu } from 'antd';
-import { HomeOutlined, TeamOutlined } from '@ant-design/icons';
+import { HomeOutlined, TeamOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Header, Sider, Content } = Layout;
@@ -11,13 +11,12 @@ const MainLayout = ({ children }) => {
   const [selectedKey, setSelectedKey] = useState('dashboard');
   const [userType, setUserType] = useState(null);
 
-  // Efecto para obtener el tipo de usuario del localStorage y asegurarse de que sea un número
   useEffect(() => {
     const userData = localStorage.getItem('userData');
     if (userData) {
       try {
         const parsed = JSON.parse(userData);
-        setUserType(Number(parsed.userType)); // Convertimos a número
+        setUserType(Number(parsed.userType)); 
       } catch (e) {
         console.error('Error al parsear datos de usuario:', e);
         setUserType(null);
@@ -25,13 +24,16 @@ const MainLayout = ({ children }) => {
     }
   }, []);
 
-  // Efecto para actualizar la selección del menú según la ruta actual
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'groups';
     setSelectedKey(path);
   }, [location]);
 
-  // Crear los elementos del menú según el tipo de usuario
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    navigate('/login');
+  };
+
   const getMenuItems = () => {
     const menuItems = [
       {
@@ -47,7 +49,6 @@ const MainLayout = ({ children }) => {
         key: 'team',
         icon: <TeamOutlined />,
         label: 'Teams',
-
         onClick: () => navigate('/team'),
       });
     }
@@ -56,8 +57,8 @@ const MainLayout = ({ children }) => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#1a1a1a' }}>
-      <Sider theme="dark" width={250} style={{ background: '#141414' }}>
+    <Layout style={{ minHeight: '1vh', background: '#1a1a1a' }}>
+      <Sider theme="dark" width={180} style={{ background: '#141414' }}>
         <div
           style={{
             height: '64px',
@@ -70,10 +71,15 @@ const MainLayout = ({ children }) => {
         >
           Task Manager
         </div>
-        {userType !== null && ( // Solo renderizar el menú si userType ya está definido
+        {userType !== null && (
           <Menu
             mode="inline"
-            items={getMenuItems()}
+            items={[...getMenuItems(), {
+              key: 'logout',
+              icon: <LogoutOutlined />,
+              label: 'Cerrar Sesión',
+              onClick: handleLogout,
+            }]}
             style={{ background: '#141414', color: '#fff' }}
             theme="dark"
             selectable={true}

@@ -8,7 +8,6 @@ const NewTaskModal = ({ visible, onClose, onTaskCreated, groupId, groupMembers }
   const [form] = Form.useForm();
   const [members, setMembers] = useState([]);
 
-  // Cargar los miembros del grupo si no se proporcionan
   useEffect(() => {
     const fetchGroupMembers = async () => {
       if (!groupMembers && groupId) {
@@ -29,11 +28,9 @@ const NewTaskModal = ({ visible, onClose, onTaskCreated, groupId, groupMembers }
 
   const onFinish = async (values) => {
     try {
-      // Agregar el ID del grupo a los valores del formulario
       const taskData = {
         ...values,
         groupId: groupId,
-        // Convertir la fecha a formato compatible con Firestore si existe
         deadline: values.deadline ? values.deadline.toDate() : null
       };
 

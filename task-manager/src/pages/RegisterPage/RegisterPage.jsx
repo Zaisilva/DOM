@@ -2,30 +2,13 @@ import React from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { onRegister } from '../../services/authService'; 
 
 const RegisterPage = () => {
   const navigate = useNavigate();
 
-  const onFinish = async (values) => {
-    try {
-      await api.post('/auth/register', values);
-      message.success('¡Usuario registrado exitosamente!');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    } catch (error) {
-           message.error('Error en el registro. Por favor, intenta de nuevo');
-
-        
-      if (error.response?.data?.error) {
-        message.error(error.response.data.error);
-      } else if (error.response?.status === 400) {
-        message.error('El usuario ya existe');
-      } else {
-        message.error('Error en el registro. Por favor, intenta de nuevo');
-      }
-    }
+  const handleRegister = async (values) => {
+    onRegister(values, navigate); 
   };
   
   return (
@@ -51,7 +34,7 @@ const RegisterPage = () => {
         }}>Task Manager</h2>
         <Form
           name="register"
-          onFinish={onFinish}
+          onFinish={handleRegister}
           layout="vertical"
         >
           <Form.Item

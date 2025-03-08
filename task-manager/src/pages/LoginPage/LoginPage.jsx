@@ -1,44 +1,15 @@
 import React from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
+import { Form, Input, Button, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { onLogin } from '../../services/authService'; 
 
 const LoginPage = () => {
   const navigate = useNavigate();
 
-  const onFinish = async (values) => {
-    try {
-      const response = await api.post('/auth/login', { 
-        email: values.username, 
-        password: values.password 
-      });
-
-      
-      // Guardar el token
-      localStorage.setItem('token', response.data.token);
-      
-      // Guardar información del usuario incluyendo el tipo
-      localStorage.setItem('userData', JSON.stringify({
-        username: response.data.user.username,
-        userType: response.data.user.tipo,
-        // Otros datos relevantes del usuario...
-      }));
-      
-      message.success(`¡Bienvenido ${response.data.user.username}!`);
-
-      navigate('/groups');
-    } catch (error) {
-      if (error.response?.data?.error) {
-        message.error(error.response.data.error);
-      } else if (error.response?.status === 401) {
-        message.error('Email o contraseña incorrectos');
-      } else {
-        message.error('Error al iniciar sesión. Por favor, intenta de nuevo');
-      }
-    }
+  const handleLogin = (values) => {
+    onLogin(values, navigate); 
   };
-
   return (
     <div style={{
       height: '100vh',
@@ -62,7 +33,7 @@ const LoginPage = () => {
         }}>Task Manager</h2>
         <Form
           name="login"
-          onFinish={onFinish}
+          onFinish={handleLogin}
           layout="vertical"
         >
           <Form.Item

@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Row, Col, Button, Badge, Empty, Dropdown, Menu, Modal, Form, Input, DatePicker, Select, message, Spin, Avatar, Tooltip, Divider } from 'antd';
+import { Typography, Card, Row, Col, Button, Badge, Empty, Dropdown, Menu, Modal, Form, Input, DatePicker, Select, message, Spin, Avatar, Tooltip, Tag } from 'antd';
 import { 
-  PlusOutlined, 
   ClockCircleOutlined, 
-  CheckCircleOutlined, 
-  PauseCircleOutlined, 
-  ExclamationCircleOutlined,
-  EditOutlined,
   EllipsisOutlined,
   DeleteOutlined,
   UserOutlined
@@ -15,46 +10,19 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import moment from 'moment';
 import 'moment/locale/es';
 import NewTaskModal from '../../components/NewTaskModal';
-import api from '../../services/api';
-
+import TaskStatusModal from '../../components/TaskStatusModal';
+import { fetchGroupData } from '../../services/teamService';
+import { fetchTasks, deleteTask, updateTask } from '../../services/taskService';
+import {ButtonCircle } from '../../components/Buttons';
+import { STATUS_CONFIG } from '../../components/Status';
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-// Configuración de estados (mantener igual)
-const STATUS_CONFIG = {
-  'In Progress': {
-    label: 'En Progreso',
-    color: '#1890ff',
-    icon: <ClockCircleOutlined />,
-    badgeStatus: 'processing'
-  },
-  'Done': {
-    label: 'Completado',
-    color: '#52c41a',
-    icon: <CheckCircleOutlined />,
-    badgeStatus: 'success'
-  },
-  'Paused': {
-    label: 'Pausado',
-    color: '#faad14',
-    icon: <PauseCircleOutlined />,
-    badgeStatus: 'warning'
-  },
-  'Revision': {
-    label: 'En Revisión',
-    color: '#ff4d4f',
-    icon: <ExclamationCircleOutlined />,
-    badgeStatus: 'error'
-  }
-};
-
 const DashboardPage = () => {
-  // Usar useLocation para obtener el estado pasado por navigate
   const location = useLocation();
   const groupId = location.state?.groupId;
   const navigate = useNavigate();
-  
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [tasks, setTasks] = useState([]);
@@ -63,170 +31,79 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentTask, setCurrentTask] = useState(null);
   const [form] = Form.useForm();
-
-  const currentUserId = localStorage.getItem('userId');
-  
+  const statusFormInstance = Form.useForm()[0];
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
   const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+  const currentUserId = userData.userId; 
   const userType = userData.userType;
-  
+  const currentUsername = userData.username;
+  const statusForm = Form.useForm()[0];
+
   const isUserType1 = userType === 1;
 
-  const isGroupCreator = groupData?.createdBy === currentUserId;
-  
   moment.locale('es');
-
-  const fetchGroupData = async () => {
-    try {
-      const response = await api.get(`/teams/${groupId}`);
-      setGroupData(response.data);
-      
-      // Obtener detalles de los miembros del grupo
-      const membersResponse = await api.get(`/teams/${groupId}/members`);
-      setGroupMembers(membersResponse.data);
-    } catch (error) {
-      message.error('Error al cargar la información del grupo');
-      console.error('Error fetching group data:', error);
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`tasks/list/${groupId}`);
-      setTasks(response.data);
-      console.log(response.data);
-
-    } catch (error) {
-      message.error('Error al cargar las tareas');
-      console.error('Error fetching tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (groupId) {
-      fetchGroupData();
-      fetchTasks();
+      fetchGroupData(groupId, setGroupData, setGroupMembers, setLoading);
+      fetchTasks(groupId, setTasks, setLoading);
     } else {
       navigate('/groups');
     }
   }, [groupId]);
+  
+  
 
   const getTasksByStatus = (status) => {
-    // Ordenar tareas para mostrar primero las asignadas al usuario actual
-    const statusTasks = tasks.filter(task => task.status === status);
-    
-    // Separar las tareas entre las asignadas al usuario actual y las demás
-    const userTasks = statusTasks.filter(task => task.assignedTo === currentUserId);
-    const otherTasks = statusTasks.filter(task => task.assignedTo !== currentUserId);
-    
-    // Devolver primero las tareas del usuario y luego las demás
-    return [...userTasks, ...otherTasks];
+    return tasks.filter(task => task.status === status);
   };
 
-  // Actualizado: SOLO el usuario asignado puede cambiar el estado
-  const canChangeTaskStatus = (task) => {
-    return task.assignedTo === currentUserId;
+  const canEditTask = (task) => {
+    if (isUserType1) return true;
+    
+    return task.assignedUserId === currentUserId || task.assignedTo === currentUserId;
   };
 
-  // El creador del grupo puede eliminar cualquier tarea
-  const canDeleteTask = (task) => {
-    return isGroupCreator;
+  const canEditTaskStatus = (task) => {
+    return task.assignedUserId === currentUserId || task.assignedTo === currentUserId;
   };
 
   const handleMenuClick = (task, action) => {
-    if (action === 'delete') {
-      if (!canDeleteTask(task)) {
-        message.warning('Solo el creador del grupo puede eliminar tareas');
-        return;
-      }
-      
-      Modal.confirm({
-        title: '¿Estás seguro que deseas eliminar esta tarea?',
-        content: 'Esta acción no se puede deshacer',
-        okText: 'Eliminar',
-        okType: 'danger',
-        cancelText: 'Cancelar',
-        onOk: async () => {
-          try {
-            await api.delete(`/tasks/${task.id}`);
-            message.success('Tarea eliminada correctamente');
-            fetchTasks();
-          } catch (error) {
-            message.error('Error al eliminar la tarea');
-          }
-        }
-      });
-    } else if (action === 'changeStatus') {
-      if (!canChangeTaskStatus(task)) {
-        message.warning('Solo el usuario asignado puede cambiar el estado de esta tarea');
-        return;
-      }
-      
+    if (action === 'changeStatus') {
       setCurrentTask(task);
-      form.setFieldsValue({
-        status: task.status
-      });
-      
-      // Abrir modal de cambio de estado
-      Modal.confirm({
-        title: 'Cambiar Estado',
-        content: (
-          <Form form={form}>
-            <Form.Item
-              name="status"
-              label="Estado"
-              rules={[{ required: true, message: 'Por favor selecciona un estado' }]}
-            >
-              <Select>
-                {Object.keys(STATUS_CONFIG).map(status => (
-                  <Option key={status} value={status}>
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ color: STATUS_CONFIG[status].color, marginRight: '8px' }}>
-                        {STATUS_CONFIG[status].icon}
-                      </span>
-                      {STATUS_CONFIG[status].label}
-                    </span>
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Form>
-        ),
-        onOk: async () => {
-          try {
-            const values = form.getFieldsValue();
-            await api.put(`/tasks/${task.id}/status`, { status: values.status });
-            message.success('Estado actualizado correctamente');
-            fetchTasks();
-          } catch (error) {
-            message.error('Error al actualizar el estado');
-          }
-        }
-      });
+      setStatusModalVisible(true);
+    } else if (action === 'delete') {
+
+      const handleDeleteTask = (taskId) => {
+        deleteTask(taskId, () => fetchTasks(groupId, setTasks, setLoading));
+      };
     }
+  };
+  const handleUpdateTask = (values) => {
+    updateTask(currentTask.id, values, isUserType1, () => fetchTasks(groupId, setTasks, setLoading), setEditModalVisible);
   };
 
   const getMemberName = (userId) => {
     const member = groupMembers.find(m => m.id === userId);
     return member ? member.name : 'Usuario';
   };
-
   const renderTaskCard = (task) => {
     const config = STATUS_CONFIG[task.status];
     
-    const isAssignedToCurrentUser = task.assignedTo === currentUserId;
+    const isAssignedToCurrentUser = task.assignedUserId === currentUserId || task.assignedTo === currentUserId;
+    
+    const assignedUserName = task.assignedUsername || 
+      (task.assignedUserId ? getMemberName(task.assignedUserId) : getMemberName(task.assignedTo));
     
     const taskMenu = (
       <Menu>
-        {canChangeTaskStatus(task) && (
+        {canEditTaskStatus(task) && (
           <Menu.Item key="changeStatus" icon={<ClockCircleOutlined />} onClick={() => handleMenuClick(task, 'changeStatus')}>
             Cambiar estado
           </Menu.Item>
         )}
         
-        {canDeleteTask(task) && (
+        {isUserType1 && (
           <Menu.Item key="delete" icon={<DeleteOutlined />} danger onClick={() => handleMenuClick(task, 'delete')}>
             Eliminar tarea
           </Menu.Item>
@@ -242,26 +119,28 @@ const DashboardPage = () => {
           border: `1px solid ${config.color}30`,
           borderRadius: '12px',
           marginBottom: '16px',
-          boxShadow: isAssignedToCurrentUser ? `0 4px 12px ${config.color}30` : '0 4px 12px rgba(0, 0, 0, 0.05)',
+          boxShadow: isAssignedToCurrentUser ? `0 4px 12px ${config.color}40` : '0 4px 12px rgba(0, 0, 0, 0.05)',
           transition: 'all 0.3s ease'
         }}
         hoverable
         bodyStyle={{ padding: '16px' }}
       >
         <div style={{ borderLeft: `3px solid ${config.color}`, paddingLeft: '12px' }}>
-          {/* Destacar visualmente que esta tarea está asignada al usuario actual */}
-          {isAssignedToCurrentUser && (
-            <Badge.Ribbon 
-              text="Tu tarea" 
-              color={config.color}
-              style={{ fontWeight: 500, fontSize: '12px' }}
-            />
-          )}
-          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <Text strong style={{ color: '#262626', fontSize: '16px', fontWeight: 600 }}>{task.nameTask}</Text>
+            <div>
+              <Text strong style={{ color: '#262626', fontSize: '16px', fontWeight: 600 }}>{task.nameTask}</Text>
+              
+              {/* Etiqueta que muestra si la tarea está asignada al usuario actual */}
+              {isAssignedToCurrentUser && (
+                <Tag color={config.color} style={{ marginLeft: '8px', borderRadius: '12px' }}>
+                  Mi tarea
+                </Tag>
+              )}
+            </div>
+            
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              {(canChangeTaskStatus(task) || canDeleteTask(task)) && (
+              {/* Mostrar el menú solo si el usuario puede editar el estado */}
+              {(canEditTask(task) || canEditTaskStatus(task)) && (
                 <Dropdown overlay={taskMenu} trigger={['click']} placement="bottomRight">
                   <Button type="text" icon={<EllipsisOutlined style={{ fontSize: '18px' }} />} />
                 </Dropdown>
@@ -277,30 +156,20 @@ const DashboardPage = () => {
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              {task.assignedTo && (
-                <Tooltip title={`Asignado a: ${getMemberName(task.assignedTo)}`}>
+              {/* Mostrar el usuario asignado */}
+              <Tooltip title={`Asignado a: ${assignedUserName}`}>
+                <div style={{ display: 'flex', alignItems: 'center', marginRight: '12px' }}>
                   <Avatar 
                     size="small" 
                     icon={<UserOutlined />} 
                     style={{ 
                       backgroundColor: isAssignedToCurrentUser ? config.color : '#8c8c8c',
-                      marginRight: '8px'
+                      marginRight: '4px'
                     }} 
                   />
-                </Tooltip>
-              )}
-              
-              {/* Mostrar nombre de usuario asignado */}
-              {task.assignedTo && (
-                <Text style={{ 
-                  fontSize: '12px', 
-                  fontWeight: isAssignedToCurrentUser ? 600 : 400,
-                  color: isAssignedToCurrentUser ? config.color : '#8c8c8c',
-                  marginRight: '8px'
-                }}>
-                  {getMemberName(task.assignedTo)}
-                </Text>
-              )}
+                
+                </div>
+              </Tooltip>
               
               {task.deadline && (
                 <Text type="secondary" style={{ fontSize: '12px', color: '#8c8c8c' }}>
@@ -327,10 +196,8 @@ const DashboardPage = () => {
     );
   };
 
-  // Verificar si hay tareas e tota
+  // Verificar si hay tareas en total
   const hasTasks = tasks.length > 0;
-  
-  const hasUserTasks = tasks.some(task => task.assignedTo === currentUserId);
 
   const renderEmptyState = () => (
     <div style={{ 
@@ -353,35 +220,13 @@ const DashboardPage = () => {
                 ? 'Como creador del grupo, puedes agregar tareas y asignarlas a los miembros.'
                 : 'El creador del grupo debe crear tareas y asignarlas a los miembros.'}
             </Text>
+      
           </div>
         }
       />
     </div>
   );
-
-  const renderUserTasksSection = () => {
-    if (!hasUserTasks) return null;
-    
-    const userTasks = tasks.filter(task => task.assignedTo === currentUserId);
-    
-    return (
-      <div style={{ marginBottom: '40px' }}>
-        <Title level={3} style={{ color: '#262626', fontWeight: 600, margin: '0 0 20px' }}>
-          Tus tareas asignadas
-        </Title>
-        
-        <Row gutter={[24, 24]}>
-          {userTasks.map(task => (
-            <Col xs={24} sm={12} lg={8} xl={6} key={`user-task-${task.id}`}>
-              {renderTaskCard(task)}
-            </Col>
-          ))}
-        </Row>
-        
-        <Divider style={{ margin: '40px 0 20px' }} />
-      </div>
-    );
-  };
+  
 
   return (
     <div style={{ 
@@ -391,8 +236,8 @@ const DashboardPage = () => {
       backgroundColor: '#f9f9fb',
       minHeight: '100vh'
     }}>
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <Title level={2} style={{ color: '#262626', fontWeight: 600, margin: '0 0 8px' }}>Tareas del Grupo</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <Title level={2} style={{ color: '#262626', fontWeight: 600, margin: 0 }}>Tareas del Grupo</Title>
       </div>
       
       {loading ? (
@@ -402,107 +247,78 @@ const DashboardPage = () => {
       ) : !hasTasks ? (
         renderEmptyState()
       ) : (
-        <>
-          {renderUserTasksSection()}
-          
-          <Title level={3} style={{ color: '#262626', fontWeight: 600, margin: '0 0 20px' }}>
-            Todas las tareas por estado
-          </Title>
-          
-          <Row gutter={[24, 24]} style={{ marginBottom: '40px' }}>
-            {Object.keys(STATUS_CONFIG).map(status => {
-              const statusTasks = getTasksByStatus(status);
-              const config = STATUS_CONFIG[status];
+        <Row gutter={[24, 24]} style={{ marginBottom: '40px' }}>
+          {Object.keys(STATUS_CONFIG).map(status => {
+            const statusTasks = getTasksByStatus(status);
+            const config = STATUS_CONFIG[status];
 
-              return (
-                <Col xs={24} sm={12} lg={6} key={status}>
-                  <div 
-                    style={{ 
-                      background: '#fff',
-                      borderRadius: '16px',
-                      padding: '20px',
-                      height: '100%',
-                      minHeight: '500px',
-                      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
-                  >
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      marginBottom: '20px',
-                      padding: '12px 16px',
-                      background: `${config.color}10`,
-                      borderRadius: '10px',
-                      boxShadow: `0 2px 8px ${config.color}20`
-                    }}>
-                      <span style={{ marginRight: '10px', color: config.color, fontSize: '18px' }}>
-                        {config.icon}
-                      </span>
-                      <Title level={4} style={{ color: '#262626', margin: 0, fontWeight: 600 }}>
-                        {config.label}
-                      </Title>
-                      <Badge 
-                        count={statusTasks.length} 
-                        style={{ 
-                          backgroundColor: config.color, 
-                          marginLeft: '10px',
-                          boxShadow: `0 2px 6px ${config.color}40` 
-                        }} 
-                      />
-                    </div>
-                    
-                    <div style={{ 
-                      overflowY: 'auto', 
-                      flexGrow: 1,
-                      padding: '4px 2px'
-                    }}>
-                      {statusTasks.length > 0 ? (
-                        statusTasks.map(renderTaskCard)
-                      ) : (
-                        <Empty 
-                          image={Empty.PRESENTED_IMAGE_SIMPLE} 
-                          description={
-                            <Text style={{ color: '#8c8c8c', fontStyle: 'italic' }}>
-                              No hay tareas en esta sección
-                            </Text>
-                          }
-                          style={{ margin: '60px 0' }}
-                        />
-                      )}
-                    </div>
+            return (
+              <Col xs={24} sm={12} lg={6} key={status}>
+                <div 
+                  style={{ 
+                    background: '#fff',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    height: '100%',
+                    minHeight: '500px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    marginBottom: '20px',
+                    padding: '12px 16px',
+                    background: `${config.color}10`,
+                    borderRadius: '10px',
+                    boxShadow: `0 2px 8px ${config.color}20`
+                  }}>
+                    <span style={{ marginRight: '10px', color: config.color, fontSize: '18px' }}>
+                      {config.icon}
+                    </span>
+                    <Title level={4} style={{ color: '#262626', margin: 0, fontWeight: 600 }}>
+                      {config.label}
+                    </Title>
+                    <Badge 
+                      count={statusTasks.length} 
+                      style={{ 
+                        backgroundColor: config.color, 
+                        marginLeft: '10px',
+                        boxShadow: `0 2px 6px ${config.color}40` 
+                      }} 
+                    />
                   </div>
-                </Col>
-              );
-            })}
-          </Row>
-        </>
+                  
+                  <div style={{ 
+                    overflowY: 'auto', 
+                    flexGrow: 1,
+                    padding: '4px 2px'
+                  }}>
+                    {statusTasks.length > 0 ? (
+                      statusTasks.map(renderTaskCard)
+                    ) : (
+                      <Empty 
+                        image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                        description={
+                          <Text style={{ color: '#8c8c8c', fontStyle: 'italic' }}>
+                            No hay tareas en esta sección
+                          </Text>
+                        }
+                        style={{ margin: '60px 0' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </Col>
+            );
+          })}
+        </Row>
       )}
       
       {isUserType1 && (
-        <Button
-          type="primary"
-          shape="circle"
-          icon={<PlusOutlined />}
-          size="large"
-          style={{
-            position: 'fixed',
-            bottom: '40px',
-            right: '40px',
-            background: 'linear-gradient(135deg, #b388ff 0%, #7c4dff 100%)',
-            borderColor: '#7c4dff',
-            width: '60px',
-            height: '60px',
-            fontSize: '22px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            boxShadow: '0 4px 16px rgba(124, 77, 255, 0.4)',
-            transition: 'all 0.3s'
-          }}
-          onClick={() => setModalVisible(true)}
-        />
+          <ButtonCircle onClick={() => setModalVisible(true)} />
       )}
       
       <NewTaskModal
@@ -512,6 +328,106 @@ const DashboardPage = () => {
         groupId={groupId}
         groupMembers={groupMembers}
       />
+      
+      <Modal
+        title="Editar Tarea"
+        visible={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        footer={null}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleUpdateTask}
+        >
+          <Form.Item
+            name="nameTask"
+            label="Nombre de la tarea"
+            rules={[{ required: true, message: 'Por favor ingresa un nombre para la tarea' }]}
+          >
+            <Input disabled={!isUserType1} />
+          </Form.Item>
+          
+          <Form.Item
+            name="description"
+            label="Descripción"
+          >
+            <TextArea rows={4} disabled={!isUserType1} />
+          </Form.Item>
+          
+          <Form.Item
+            name="status"
+            label="Estado"
+            rules={[{ required: true, message: 'Por favor selecciona un estado' }]}
+          >
+            <Select>
+              {Object.keys(STATUS_CONFIG).map(status => (
+                <Option key={status} value={status}>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ color: STATUS_CONFIG[status].color, marginRight: '8px' }}>
+                      {STATUS_CONFIG[status].icon}
+                    </span>
+                    {STATUS_CONFIG[status].label}
+                  </span>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
+          {isUserType1 && (
+            <>
+              <Form.Item
+                name="deadline"
+                label="Fecha límite"
+              >
+                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+              </Form.Item>
+              
+              <Form.Item
+                name="category"
+                label="Categoría"
+              >
+                <Select allowClear>
+                  <Option value="Urgente">Urgente</Option>
+                  <Option value="Importante">Importante</Option>
+                  <Option value="Recordatorio">Recordatorio</Option>
+                  <Option value="Seguimiento">Seguimiento</Option>
+                </Select>
+              </Form.Item>
+              
+              <Form.Item
+                name="assignedTo"
+                label="Asignado a"
+                rules={[{ required: true, message: 'Por favor selecciona un miembro' }]}
+              >
+                <Select>
+                  {groupMembers.map(member => (
+                    <Option key={member.id} value={member.id}>{member.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </>
+          )}
+          
+          <Form.Item>
+            <Button type="primary" htmlType="submit" style={{ marginRight: '8px' }}>
+              Guardar
+            </Button>
+            <Button onClick={() => setEditModalVisible(false)}>
+              Cancelar
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+      <TaskStatusModal
+      visible={statusModalVisible}
+      onCancel={() => setStatusModalVisible(false)}
+      onStatusChange={(newStatus) => {
+        console.log(`Tarea ${currentTask?.id} actualizada a estado: ${newStatus}`);
+      }}
+      currentTask={currentTask}
+      refreshTasks={fetchTasks}
+    />
     </div>
   );
 };
