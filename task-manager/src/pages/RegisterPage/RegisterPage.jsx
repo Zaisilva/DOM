@@ -1,37 +1,28 @@
 import React from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
+import { Form } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { onRegister } from '../../services/authService'; 
+import { onRegister } from '../../services/authService';
+import { ButtonLarge, TextLink } from '../../components/Common/Buttons';
+import { 
+  CustomInput, 
+  FormCard, 
+  AppTitle, 
+  GlobalStyles, 
+  PageBackground 
+} from '../../components/Form';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
 
   const handleRegister = async (values) => {
-    onRegister(values, navigate); 
+    onRegister(values, navigate);
   };
-  
+
   return (
-    <div style={{
-      height: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d1f3d 100%)'
-    }}>
-      <Card 
-        style={{ 
-          width: 400,
-          background: '#1f1f1f',
-          border: '1px solid #303030',
-          borderRadius: '8px'
-        }}
-      >
-        <h2 style={{ 
-          textAlign: 'center', 
-          marginBottom: 24,
-          color: '#b388ff'
-        }}>Task Manager</h2>
+    <PageBackground>
+      <FormCard>
+        <AppTitle />
         <Form
           name="register"
           onFinish={handleRegister}
@@ -44,87 +35,44 @@ const RegisterPage = () => {
               { type: 'email', message: 'Ingresa un email válido' }
             ]}
           >
-            <Input 
-              prefix={<MailOutlined style={{ color: '#b388ff' }} />} 
+            <CustomInput
+              prefix={<MailOutlined style={{ color: '#b388ff' }} />}
               placeholder="Email"
-              style={{ 
-                background: '#141414',
-                borderColor: '#303030',
-                color: '#fff'
-              }}
-              className="custom-input"
             />
           </Form.Item>
           <Form.Item
             name="username"
             rules={[{ required: true, message: 'Por favor ingresa tu usuario' }]}
           >
-            <Input 
-              prefix={<UserOutlined style={{ color: '#b388ff' }} />} 
+            <CustomInput
+              prefix={<UserOutlined style={{ color: '#b388ff' }} />}
               placeholder="Usuario"
-              style={{ 
-                background: '#141414',
-                borderColor: '#303030',
-                color: '#fff'
-              }}
-              className="custom-input"
             />
           </Form.Item>
           <Form.Item
             name="password"
             rules={[{ required: true, message: 'Por favor ingresa tu contraseña' }]}
           >
-            <Input.Password 
-              prefix={<LockOutlined style={{ color: '#b388ff' }} />} 
+            <CustomInput
+              type="password"
+              prefix={<LockOutlined style={{ color: '#b388ff' }} />}
               placeholder="Contraseña"
-              style={{ 
-                background: '#141414',
-                borderColor: '#303030',
-                color: '#fff'
-              }}
-              className="custom-input"
             />
           </Form.Item>
           <Form.Item>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              block
-              style={{ 
-                background: '#b388ff',
-                borderColor: '#b388ff'
-              }}
-            >
+            <ButtonLarge htmlType="submit">
               Registrarse
-            </Button>
+            </ButtonLarge>
           </Form.Item>
           <div style={{ textAlign: 'center' }}>
-            <a 
-              onClick={() => navigate('/login')}
-              style={{ color: '#b388ff', cursor: 'pointer' }}
-            >
+            <TextLink onClick={() => navigate('/login')}>
               ¿Ya tienes cuenta? Inicia sesión
-            </a>
+            </TextLink>
           </div>
         </Form>
-        <style>
-          {`
-            .custom-input {
-              color: white !important;
-            }
-            .custom-input input {
-              color: white !important;
-            }
-            .custom-input input::placeholder {
-              color: rgba(255, 255, 255, 0.65) !important;
-            }
-            .ant-input-password-icon {
-              color: #b388ff !important;
-            }
-          `}
-        </style>
-      </Card>
-    </div>
+        <GlobalStyles />
+      </FormCard>
+    </PageBackground>
   );
 };
 

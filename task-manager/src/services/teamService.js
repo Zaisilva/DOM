@@ -37,3 +37,33 @@ export const fetchGroupData = async (groupId, setGroupData, setGroupMembers, set
     setLoading(false);
   }
 };
+
+export const fetchGroupMembers = async (groupId) => {
+  try {
+    const response = await api.get(`/groups/${groupId}/members`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching group members:', error);
+    throw error;
+  }
+};
+
+export const createTeam = async (teamData) => {
+  try {
+    const response = await api.post('/teams/create', teamData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating team:', error);
+    throw error;
+  }
+};
+
+export const updateTeam = async (teamId, teamData) => {
+  try {
+    const response = await api.put(`/teams/${teamId}`, teamData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating team:', error);
+    throw error;
+  }
+};

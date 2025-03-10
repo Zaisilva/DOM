@@ -7,7 +7,7 @@ export const onRegister = async (values, navigate) => {
     message.success('¡Usuario registrado exitosamente!');
     
     setTimeout(() => {
-      navigate('/login');
+      navigate('/login', { replace: true });
     }, 2000);
   } catch (error) {
     if (error.response?.data?.error) {
@@ -35,7 +35,7 @@ export const onLogin = async (values, navigate) => {
     }));
 
     message.success(`¡Bienvenido ${response.data.user.username}!`);
-    navigate('/groups');
+    navigate('/groups', { replace: true });
   } catch (error) {
     if (error.response?.data?.error) {
       message.error(error.response.data.error);
@@ -45,4 +45,12 @@ export const onLogin = async (values, navigate) => {
       message.error('Error al iniciar sesión. Por favor, intenta de nuevo');
     }
   }
+};
+
+export const onLogout = (navigate) => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('userData');
+  
+  navigate('/login', { replace: true });
+  message.success('Sesión cerrada correctamente');
 };

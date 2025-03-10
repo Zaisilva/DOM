@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Row, Col, Modal} from 'antd';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Row, Col } from 'antd';
 import moment from 'moment';
 import 'moment/locale/es';
-
-import { fetchGroupData } from '../../services/teamService';
-import { fetchTasks, deleteTask, updateTask } from '../../services/taskService';
+import { fetchPersonalTasks, deleteTask, updateTask } from '../../services/taskService';
 import NewTaskModal from '../../components/Modals/NewTaskModal';
 import TaskStatusModal from '../../components/Modals/TaskStatusModal';
 import EditTaskModal from '../../components/Modals/EditTaskModal';
@@ -16,16 +13,11 @@ import EmptyState from '../../components/EmptyState';
 import TaskStatusColumn from '../../components/TaskStatusColumn';
 import PageTitle from '../../components/Common/PageTitle';
 
-const DashboardPage = () => {
-  const location = useLocation();
-  const groupId = location.state?.groupId;
-  const navigate = useNavigate();
+const PersonalDashboardPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [tasks, setTasks] = useState([]);
-  const [groupMembers, setGroupMembers] = useState([]);
-  const [groupData, setGroupData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTask, setCurrentTask] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now()); 
@@ -37,20 +29,18 @@ const DashboardPage = () => {
   moment.locale('es');
 
   const loadTasks = useCallback(async () => {
-    if (!groupId) return [];
-    
     try {
       return new Promise((resolve) => {
-       fetchTasks(groupId, (updatedTasks) => {
+        fetchPersonalTasks((updatedTasks) => {
           setTasks(updatedTasks);
           resolve(updatedTasks);
-        }, () => {/* Función dummy para setLoading */});
+        }, () => {});
       });
     } catch (error) {
-      console.error('Error al actualizar tareas:', error);
+      console.error('Error al actualizar tareas personales:', error);
       return tasks; 
     }
-  }, [groupId, tasks]);
+  }, [tasks]);
 
   const getTasksByStatus = useCallback((status) => {
     return tasks.filter(task => task.status === status);
@@ -67,13 +57,8 @@ const DashboardPage = () => {
   }, [getTasksByStatus, lastUpdate, loadTasks]);
 
   useEffect(() => {
-    if (groupId) {
-      fetchGroupData(groupId, setGroupData, setGroupMembers, setLoading);
-      fetchTasks(groupId, setTasks, setLoading);
-    } else {
-      navigate('/groups');
-    }
-  }, [groupId, navigate]);
+    fetchPersonalTasks(setTasks, setLoading);
+  }, []);
 
   const handleMenuClick = (task, action) => {
     if (action === 'changeStatus') {
@@ -81,20 +66,15 @@ const DashboardPage = () => {
       setStatusModalVisible(true);
     } else if (action === 'delete') {
       deleteTask(task.id, () => {
-        fetchTasks(groupId, setTasks, () => {});
+        fetchPersonalTasks(setTasks, () => {});
       });
     }
   };
 
   const handleUpdateTask = (values) => {
-    updateTask(currentTask.id, values, isUserType1, () => {
-      fetchTasks(groupId, setTasks, () => {});
+    updateTask(currentTask.id, values, true, () => {
+      fetchPersonalTasks(setTasks, () => {});
     }, setEditModalVisible);
-  };
-
-  const getMemberName = (userId) => {
-    const member = groupMembers.find(m => m.id === userId);
-    return member ? member.name : 'Usuario';
   };
 
   const hasTasks = tasks.length > 0;
@@ -108,14 +88,14 @@ const DashboardPage = () => {
       minHeight: '100vh'
     }}>
       <PageTitle 
-        title="Tareas del Grupo" 
-        subtitle=""
+        title="Mis Tareas Personales" 
+        subtitle="Organiza y gestiona tus tareas individuales"
       />
       
       {loading ? (
         <LoadingScreen tip="Cargando tareas..." />
       ) : !hasTasks ? (
-        <EmptyState type="tasks" isUserType1={isUserType1} />
+        <EmptyState type="dash" />
       ) : (
           <Row gutter={[24, 24]} style={{ marginBottom: '40px' }}>
             {Object.keys(STATUS_CONFIG).map(status => (
@@ -125,28 +105,25 @@ const DashboardPage = () => {
                   config={STATUS_CONFIG[status]}
                   tasks={getTasksByStatus(status)}
                   currentUserId={currentUserId}
-                  isUserType1={isUserType1}
+                  isUserType1={true}  
                   onMenuClick={handleMenuClick}
-                  getMemberName={getMemberName}
+                  getMemberName={() => userData.name || userData.displayName || 'Tú'}
                   statusConfig={STATUS_CONFIG}
                   fetchTasks={fetchTasksByStatus} 
-                  groupId={groupId} 
+                  groupId={null}  // Set to null to indicate these are personal tasks
+
                 />
               </Col>
             ))}
           </Row>
       )}
       
-      {isUserType1 && (
-        <ButtonCircle onClick={() => setModalVisible(true)} />
-      )}
+      <ButtonCircle onClick={() => setModalVisible(true)} />
       
       <NewTaskModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onTaskCreated={() => fetchTasks(groupId, setTasks, () => {})}
-        groupId={groupId}
-        groupMembers={groupMembers}
+        onTaskCreated={() => fetchPersonalTasks(setTasks, () => {})}
       />
       
       <EditTaskModal
@@ -154,8 +131,7 @@ const DashboardPage = () => {
         onCancel={() => setEditModalVisible(false)}
         onUpdateTask={handleUpdateTask}
         currentTask={currentTask}
-        isUserType1={isUserType1}
-        groupMembers={groupMembers}
+        isUserType1={true}  
       />
       
       <TaskStatusModal
@@ -165,10 +141,10 @@ const DashboardPage = () => {
           console.log(`Tarea ${currentTask?.id} actualizada a estado: ${newStatus}`);
         }}
         currentTask={currentTask}
-        refreshTasks={() => fetchTasks(groupId, setTasks, () => {})}
+        refreshTasks={() => fetchPersonalTasks(setTasks, () => {})}
       />
     </div>
   );
 };
 
-export default DashboardPage;
+export default PersonalDashboardPage;

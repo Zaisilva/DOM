@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, Form, Select, Button, message } from 'antd';
-import api from '../services/api';
-import { STATUS_CONFIG } from '../../components/Status';
+import { STATUS_CONFIG } from '../Common/Status';
+import { updateTaskStatus } from '../../services/taskService'; 
 
 const { Option } = Select;
 
@@ -14,7 +14,6 @@ const TaskStatusModal = ({
 }) => {
   const [form] = Form.useForm();
 
-  // Establecer el valor inicial cuando el modal se hace visible o cambia la tarea actual
   React.useEffect(() => {
     if (visible && currentTask) {
       form.setFieldsValue({
@@ -27,22 +26,16 @@ const TaskStatusModal = ({
     try {
       if (!currentTask) return;
       
-      // Llamar a la API para actualizar solo el estado de la tarea
-      await api.put(`/tasks/status/${currentTask.id}`, { status: values.status });
-      
+      await updateTaskStatus(currentTask.id, values.status);
       message.success('Estado de la tarea actualizado correctamente');
       
-      // Si pasaron una función de callback, la ejecutamos
       if (onStatusChange) {
         onStatusChange(values.status);
       }
       
-      // Recargar las tareas si se proporcionó la función
       if (refreshTasks) {
         refreshTasks();
       }
-      
-      // Cerrar el modal
       onCancel();
     } catch (error) {
       message.error('Error al actualizar el estado de la tarea');

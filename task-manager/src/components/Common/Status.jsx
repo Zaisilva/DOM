@@ -1,7 +1,7 @@
 import React from 'react';
 import { ClockCircleOutlined, CheckCircleOutlined, PauseCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 
-const STATUS_CONFIG = {
+export const STATUS_CONFIG = {  
   'In Progress': {
     label: 'En Progreso',
     color: '#1890ff',
@@ -28,4 +28,3 @@ const STATUS_CONFIG = {
   }
 };
 
-export default STATUS_CONFIG;

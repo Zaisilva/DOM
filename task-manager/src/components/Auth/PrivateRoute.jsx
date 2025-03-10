@@ -12,20 +12,23 @@ const PrivateRoute = ({ children }) => {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) {
           localStorage.removeItem('token');
+          localStorage.removeItem('userData');
           message.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-          navigate('/login');
+          navigate('/login', { replace: true });
         }
       } catch (error) {
         localStorage.removeItem('token');
-        navigate('/login');
+        localStorage.removeItem('userData');
+        navigate('/login', { replace: true });
       }
     }
   }, [navigate, token]);
 
   if (!token) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;
 };
+
 export default PrivateRoute;

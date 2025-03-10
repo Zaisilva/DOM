@@ -5,9 +5,11 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import MainLayout from './layouts/MainLayout';
-import PrivateRoute from './components/PrivateRoute';
+import PrivateRoute from './components/Auth/PrivateRoute';
 import TeamPage from './pages/Team/TeamPage';
 import GroupsPage from './pages/Groups/GroupsPage';
+import UserManagement from './pages/UserManagement/UserManagement';
+import PersonalDashboardPage from './pages/Dashboard/PersonalDashboardPage'
 const App = () => {
   return (
     <BrowserRouter>
@@ -22,6 +24,13 @@ const App = () => {
           </MainLayout>
         </PrivateRoute>
       } />
+        <Route path="/dash" element={
+        <PrivateRoute>
+          <MainLayout>
+            <PersonalDashboardPage />
+          </MainLayout>
+          </PrivateRoute>
+        } />
         <Route path="/team" element={
           <PrivateRoute>
             <MainLayout>
@@ -29,6 +38,14 @@ const App = () => {
             </MainLayout>
           </PrivateRoute>
         } />
+            <Route path="/users" element={
+          <PrivateRoute>
+            <MainLayout>
+              <UserManagement />
+            </MainLayout>
+          </PrivateRoute>
+        } />
+
          <Route path="/groups" element={
           <PrivateRoute>
             <MainLayout>
