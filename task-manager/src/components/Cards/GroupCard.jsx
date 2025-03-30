@@ -60,19 +60,19 @@ const GroupCard = ({ group, onClick }) => {
 
       <div style={{ padding: '18px 22px' }}>
         {group.description && (
-          <Paragraph ellipsis={{ rows: 2 }} style={{ color: '#595959', marginBottom: '16px' }}>
+          <Paragraph ellipsis={{ rows: 2 }} style={{ color: '#000', marginBottom: '16px' }}>
             {group.description}
           </Paragraph>
         )}
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <UserOutlined style={{ color: grayColor, marginRight: '5px' }} />
-            <Text type="secondary">{group.members.length} miembros</Text>
+            <UserOutlined style={{ color: '#000', marginRight: '5px' }} />
+            <Text type="secondary" style={{ color: '#000' }}>{group.members.length} miembros</Text>
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <CalendarOutlined style={{ color: grayColor, marginRight: '5px' }} />
-            <Text type="secondary">
+            <CalendarOutlined style={{ color: '#000', marginRight: '5px' }} />
+            <Text type="secondary" style={{ color: '#000' }}>
               {moment(group.createdAt).format('DD MMM, YYYY')}
             </Text>
           </div>

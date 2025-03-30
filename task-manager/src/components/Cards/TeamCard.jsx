@@ -78,7 +78,7 @@ const TeamCard = ({ team, onEdit, onDelete }) => {
           </Avatar.Group>
           <div style={{ marginLeft: '16px' }}>
             <Title level={4} style={{ margin: 0, color: '#333' }}>{team.name}</Title>
-            <Text type="secondary">
+            <Text type="secondary" style={{ color: '#000' }}>
               {team.members.length} {team.members.length === 1 ? 'miembro' : 'miembros'}
             </Text>
           </div>
@@ -95,7 +95,7 @@ const TeamCard = ({ team, onEdit, onDelete }) => {
         <Paragraph 
           style={{ 
             marginTop: '20px', 
-            color: '#555',
+            color: '#000',
             backgroundColor: '#fafafa',
             padding: '12px',
             borderRadius: '8px'

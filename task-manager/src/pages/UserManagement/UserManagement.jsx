@@ -80,7 +80,7 @@ function UserManagement() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#f9f9fb', minHeight: '100vh' }}>
-      <PageTitle title="Usuarios" subtitle="Administra de los usuarios" />
+      <PageTitle title="Usuarios" subtitle="Administra los usuarios" />
       <ButtonCircle onClick={handleAddUser} />
       <UserList users={users} onEdit={handleEditUser} onDelete={confirmDeleteUser} />
       <UserFormModal visible={isModalVisible} onClose={handleCancelEdit} user={currentUser} onSave={handleSaveUser} />

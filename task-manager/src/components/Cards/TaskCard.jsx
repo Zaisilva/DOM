@@ -117,7 +117,7 @@ const TaskCard = ({
             </Tooltip>
             
             {task.deadline && (
-              <Text type="secondary" style={{ fontSize: '12px', color: '#8c8c8c' }}>
+              <Text type="secondary" style={{ fontSize: '12px', color: '#464646' }}>
                 Fecha límite: {moment(task.deadline).format('DD MMM, YYYY')}
               </Text>
             )}

@@ -47,7 +47,7 @@ export const UserSearch = ({
               <Avatar size="small" icon={<UserOutlined />} src={user.avatar} />
               <div style={{ marginLeft: '8px', flex: 1 }}>
                 <div style={{ fontWeight: '500' }}>{user.name}</div>
-                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                <div style={{ fontSize: '12px', color: '#000' }}>
                   {user.email} {user.username && `· @${user.username}`}
                 </div>
               </div>

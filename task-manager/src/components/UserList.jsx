@@ -23,7 +23,7 @@ function UserList({ users, onEdit, onDelete }) {
   const thStyle = {
     padding: '18px 20px',
     textAlign: 'left',
-    color: '#667085',
+    color: '#000',
     fontWeight: '600',
     fontSize: '13px',
     letterSpacing: '0.6px',

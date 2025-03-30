@@ -18,6 +18,10 @@ const AuthCheck = () => {
   
   useEffect(() => {
     const checkAuth = () => {
+      if (location.pathname === '/login') {
+        return;
+      }
+      
       const token = localStorage.getItem('token');
       
       if (!token) {
@@ -41,12 +45,7 @@ const AuthCheck = () => {
     };
     
     checkAuth();
-    
-    window.addEventListener('popstate', checkAuth);
-    
-    return () => {
-      window.removeEventListener('popstate', checkAuth);
-    };
+  
   }, [navigate, location.pathname]);
   
   return null; 
@@ -57,32 +56,45 @@ const MainLayout = ({ children }) => {
   const location = useLocation();
   const [selectedKey, setSelectedKey] = useState('dash');
   const [userType, setUserType] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('userData');
-    if (userData) {
+    
+    if (token && userData) {
       try {
-        const parsed = JSON.parse(userData);
-        setUserType(Number(parsed.userType)); 
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 > Date.now()) {
+          setIsAuthenticated(true);
+          
+          const parsed = JSON.parse(userData);
+          setUserType(Number(parsed.userType));
+        } else {
+          handleLogout();
+        }
       } catch (e) {
-        console.error('Error al parsear datos de usuario:', e);
-        setUserType(null);
+        console.error('Error parsing user data or token:', e);
+        handleLogout();
+      }
+    } else {
+      setIsAuthenticated(false);
+      
+      if (location.pathname !== '/login') {
+        navigate('/login', { replace: true });
       }
     }
   }, []);
 
-  // Redireccionar a /dash si estamos en la raíz
   useEffect(() => {
-    if (location.pathname === '/') {
-      navigate('/dash');
+    if (isAuthenticated && location.pathname === '/') {
+      navigate('/dash', { replace: true });
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, isAuthenticated]);
 
-  // Actualizar la selección basado en la ruta actual
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'dash';
     
-    // Mapeo de rutas a claves de menú
     const routeToKeyMap = {
       'dash': 'dash',
       'groups': 'groups',
@@ -96,6 +108,8 @@ const MainLayout = ({ children }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
+    setIsAuthenticated(false);
+    setUserType(null);
     navigate('/login', { replace: true });
   };
 
@@ -136,60 +150,61 @@ const MainLayout = ({ children }) => {
     return menuItems;
   };
 
+  if (location.pathname === '/login') {
+    return children;
+  }
+
   return (
-    <>
-      <AuthCheck />
-      <Layout style={{ minHeight: '1vh', background: '#1a1a1a' }}>
-        <Sider theme="dark" width={182} style={{ background: '#141414' }}>
-          <div
-            style={{
-              height: '64px',
-              padding: '16px',
-              color: '#b388ff',
-              fontSize: '20px',
-              fontWeight: 'bold',
-              borderBottom: '1px solid #303030',
-            }}
-          >
-            Task Manager
-          </div>
-          {userType !== null && (
-            <Menu
-              mode="inline"
-              items={[...getMenuItems(), {
-                key: 'logout',
-                icon: <LogoutOutlined />,
-                label: 'Cerrar Sesión',
-                onClick: handleLogout,
-              }]}
-              style={{ background: '#141414', color: '#fff' }}
-              theme="dark"
-              selectable={true}
-              selectedKeys={[selectedKey]}
-              className="custom-menu"
-            />
-          )}
-          <style>
-            {`
-              .custom-menu .ant-menu-item-selected {
-                background-color: #b388ff !important;
-              }
-              .custom-menu .ant-menu-item:hover {
-                color: #b388ff !important;
-              }
-              .custom-menu .ant-menu-item-selected .ant-menu-item-icon,
-              .custom-menu .ant-menu-item-selected .ant-menu-title-content {
-                color: #fff !important;
-              }
-            `}
-          </style>
-        </Sider>
-        <Layout>
-          <Header style={{ background: '#141414', padding: 0, borderBottom: '1px solid #303030' }} />
-          <Content>{children}</Content>
-        </Layout>
+    <Layout style={{ minHeight: '1vh', background: '#1a1a1a' }}>
+      <Sider theme="dark" width={182} style={{ background: '#141414' }}>
+        <div
+          style={{
+            height: '64px',
+            padding: '16px',
+            color: '#b388ff',
+            fontSize: '20px',
+            fontWeight: 'bold',
+            borderBottom: '1px solid #303030',
+          }}
+        >
+          Task Manager
+        </div>
+        {isAuthenticated && userType !== null && (
+          <Menu
+            mode="inline"
+            items={[...getMenuItems(), {
+              key: 'logout',
+              icon: <LogoutOutlined />,
+              label: 'Cerrar Sesión',
+              onClick: handleLogout,
+            }]}
+            style={{ background: '#141414', color: '#fff' }}
+            theme="dark"
+            selectable={true}
+            selectedKeys={[selectedKey]}
+            className="custom-menu"
+          />
+        )}
+        <style>
+          {`
+            .custom-menu .ant-menu-item-selected {
+              background-color: #b388ff !important;
+            }
+            .custom-menu .ant-menu-item:hover {
+              color: #b388ff !important;
+            }
+            .custom-menu .ant-menu-item-selected .ant-menu-item-icon,
+            .custom-menu .ant-menu-item-selected .ant-menu-title-content {
+              color: #fff !important;
+            }
+          `}
+        </style>
+      </Sider>
+      <Layout>
+        <Header style={{ background: '#141414', padding: 0, borderBottom: '1px solid #303030' }} />
+        <Content>{children}</Content>
       </Layout>
-    </>
+    </Layout>
   );
 };
 

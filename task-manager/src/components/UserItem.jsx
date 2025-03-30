@@ -49,7 +49,7 @@ function UserItem({ user, onEdit, onDelete }) {
     fontSize: '12px',
     fontWeight: '600',
     backgroundColor: user.tipo === 1 ? '#e9e1ff' : '#f5f5f5',
-    color: user.tipo === 1 ? '#6941c6' : '#666',
+    color: user.tipo === 1 ? '#6941c6' : '#000',
     letterSpacing: '0.3px',
     boxShadow: user.tipo === 1 ? '0 1px 3px rgba(105, 65, 198, 0.1)' : 'none'
   };
